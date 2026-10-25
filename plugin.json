@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "kubernetes",
+  "version": "0.1.0",
+  "description": "Read pods, events, and logs in one local namespace. The server is kubernetes-mcp-server 0.0.68. Helm and other changes are not listed.",
+  "author": {
+    "name": "TakeshiTGAL",
+    "url": "https://github.com/TakeshiTGAL"
+  },
+  "homepage": "https://github.com/TakeshiTGAL/hermes-plugin-kubernetes",
+  "repository": "https://github.com/TakeshiTGAL/hermes-plugin-kubernetes",
+  "license": "MIT",
+  "keywords": ["kubernetes", "pods", "namespace", "readonly"]
+}
