@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 from pathlib import Path
 
+from .binary import ensure_binary
 from .kube import Unreadable, judge, parse_config
 from .safe_write import WriteRefused, write_bytes
 from .text import (
@@ -18,7 +18,6 @@ from .text import (
     NOT_FOUND,
     UNKNOWN_SETTING,
     UNREADABLE,
-    UVX_MISSING,
     WORK_MISSING,
     WRITE_HARDLINK,
     WRITE_OTHER,
@@ -26,7 +25,6 @@ from .text import (
     WRITE_SYMLINK,
 )
 
-PIN = "kubernetes-mcp-server==0.0.68"
 _KEYS = {"kubeconfig", "namespace", "allow_production"}
 _EXACT_ENV = {
     "PATH",
@@ -71,7 +69,6 @@ def _base_env(root: Path, kubeconfig: str) -> dict:
         if name in _EXACT_ENV or name.startswith(_PREFIX_ENV):
             kept[name] = value
     kept["HOME"] = str(root)
-    kept["UV_CACHE_DIR"] = str(root / "uv-cache")
     kept["KUBECONFIG"] = kubeconfig
     return kept
 
@@ -113,8 +110,8 @@ def toml_text(kubeconfig: str) -> str:
     )
 
 
-def plan(cwd: Path) -> dict:
-    """Read cluster.json next to the work directory. Do not resolve the API host."""
+def prepare(cwd: Path) -> dict:
+    """Read cluster.json and write server.toml. Do not download the binary."""
     cwd_path = Path(cwd)
     root = cwd_path.parent
     if not cwd_path.is_dir() or cwd_path.is_symlink():
@@ -160,21 +157,39 @@ def plan(cwd: Path) -> dict:
         write_bytes(root, f"{cwd_path.name}/server.toml", body, cut_hardlink=False)
     except WriteRefused as exc:
         return _fail("refused", _write_message(exc.kind))
-    uvx = shutil.which("uvx")
-    argv = [uvx or "uvx", "--from", PIN, "kubernetes-mcp-server", "--config", str(cwd_path / "server.toml")]
     env = _base_env(root, kubeconfig)
     if "http_proxy" in env or "HTTPS_PROXY" in env or "KUBERNETES_SERVICE_HOST" in env:
         return _fail("refused", WRITE_OTHER)
     return {
         "ok": True,
-        "argv": argv,
         "env": env,
         "secrets": judged["secrets"],
         "namespace": namespace,
         "context": judged["context"],
         "server": judged["server"],
-        "uvx": uvx,
         "root": root,
+        "work": cwd_path,
+    }
+
+
+def plan(cwd: Path) -> dict:
+    """Read cluster.json next to the work directory. Do not resolve the API host."""
+    prepared = prepare(cwd)
+    if not prepared["ok"]:
+        return prepared
+    placed = ensure_binary(prepared["root"])
+    if not placed["ok"]:
+        return placed
+    argv = [str(placed["path"]), "--config", str(prepared["work"] / "server.toml")]
+    return {
+        "ok": True,
+        "argv": argv,
+        "env": prepared["env"],
+        "secrets": prepared["secrets"],
+        "namespace": prepared["namespace"],
+        "context": prepared["context"],
+        "server": prepared["server"],
+        "root": prepared["root"],
     }
 
 
@@ -188,5 +203,3 @@ def _write_message(kind: str) -> str:
     return WRITE_OTHER
 
 
-def uvx_missing_message() -> str:
-    return UVX_MISSING

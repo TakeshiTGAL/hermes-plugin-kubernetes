@@ -32,7 +32,7 @@ This plugin does not create a cron job by itself.
 
 ## When a call fails
 
-Do not call the tool a second time for the same failure. Quote the line and take the next step once.
+Do not call the tool a second time for the same failure, except when the line says `Call again in a minute.` Quote the line and take the next step once.
 
 - A line that contains `resource not allowed` → `This kind is not readable through this plugin. That is not an empty list.`
 - A line that contains `unauthorized` → `The API rejected the kubeconfig. Check cluster.json. Do not print the token.`
@@ -43,7 +43,16 @@ Do not call the tool a second time for the same failure. Quote the line and take
 - A misspelled word such as forbiden, or the word CrashLoopBackOff in a successful log, adds no next step. Quote the server's text and stop.
 - A line that starts with `Refused` and contains `Nothing was sent` → this plugin did not send the call. Say that and stop.
 - `cluster.json was not found. Nothing was sent.` → write `cluster.json` next to `work` in the plugin data directory. Nothing was sent.
-- `uvx was not found on PATH. Nothing was sent.` → install `uv` so `uvx` can start, then start the plugin again. Do not retry the tool call.
+- `Refused this OS or CPU. Nothing was sent.` → this plugin only starts the v0.0.68 GitHub binaries for darwin-arm64, darwin-amd64, linux-amd64, and linux-arm64. Windows is refused.
+- `Refused the kubernetes-mcp-server binary because its sha256 did not match. Nothing was sent.` → delete the file under `.kubernetes-mcp-server/bin/0.0.68/` in the plugin data directory. The next start downloads the release again and checks the sha256. Do not retry the tool call until that file is gone.
+- `Refused the kubernetes-mcp-server binary because a symlink is in the path. Nothing was sent.` → remove the symlink under `.kubernetes-mcp-server` in the plugin data directory. Do not retry the tool call until it is gone.
+- `The kubernetes-mcp-server binary could not be downloaded. Nothing was sent.` → check the network, then start the plugin again. Do not retry the tool call.
+- `Refused to write the kubernetes-mcp-server binary. Nothing was sent.` → the plugin data directory could not take the file. Do not retry the tool call.
+- `The kubernetes-mcp-server binary could not be read. Nothing was sent.` → the file is there and this process cannot read it. Do not retry the tool call.
+- `The kubernetes-mcp-server binary was not found. Nothing was sent.` → the checked file was gone at start. Do not retry the tool call.
+- `The kubernetes-mcp-server binary could not be executed. Nothing was sent.` → the file is not executable by this process. Do not retry the tool call.
+- `The kubernetes-mcp-server binary could not be started. Nothing was sent.` → the process did not start. Do not retry the tool call.
+- `downloading the pinned binary (0 MB of ~90 MB). Nothing was sent. Call again in a minute.` → the binary is still downloading. The number of MB changes. Wait one minute and call the same tool once. Nothing was sent.
 
 `0 pods.` and `0 events.` copy an empty complete reply. They are not a failure, and they are not a guess.
 

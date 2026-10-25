@@ -1,7 +1,6 @@
-This plugin launches kubernetes-mcp-server 0.0.68 and does not modify that package.
+This plugin launches the kubernetes-mcp-server 0.0.68 GitHub release binary and does not modify that binary.
 
-The 0.0.68 package metadata says License-Expression: Apache-2.0.
-The upstream LICENSE file is the Apache License, Version 2.0, with no extra copyright sentence in that file:
+The v0.0.68 LICENSE file is the Apache License, Version 2.0, with no extra copyright sentence in that file:
 
 https://github.com/containers/kubernetes-mcp-server/blob/v0.0.68/LICENSE
 https://www.apache.org/licenses/LICENSE-2.0

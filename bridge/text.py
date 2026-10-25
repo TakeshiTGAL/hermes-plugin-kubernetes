@@ -11,7 +11,21 @@ PROD_REFUSED = "Refused a production-like context. Nothing was sent."
 PUBLIC_HOST = "Refused an API host that is not local. Nothing was sent."
 USERINFO = "Refused an API host that contains a password. Nothing was sent."
 WORK_MISSING = "The work directory was not found. Nothing was sent."
-UVX_MISSING = "uvx was not found on PATH. Nothing was sent."
+BINARY_UNSUPPORTED = "Refused this OS or CPU. Nothing was sent."
+BINARY_MISMATCH = "Refused the kubernetes-mcp-server binary because its sha256 did not match. Nothing was sent."
+BINARY_SYMLINK = "Refused the kubernetes-mcp-server binary because a symlink is in the path. Nothing was sent."
+BINARY_DOWNLOAD = "The kubernetes-mcp-server binary could not be downloaded. Nothing was sent."
+BINARY_WRITE = "Refused to write the kubernetes-mcp-server binary. Nothing was sent."
+BINARY_UNREADABLE = "The kubernetes-mcp-server binary could not be read. Nothing was sent."
+BINARY_NOT_FOUND = "The kubernetes-mcp-server binary was not found. Nothing was sent."
+BINARY_EXECUTE = "The kubernetes-mcp-server binary could not be executed. Nothing was sent."
+BINARY_START = "The kubernetes-mcp-server binary could not be started. Nothing was sent."
+DOWNLOADING_EXAMPLE = "downloading the pinned binary (0 MB of ~90 MB). Nothing was sent. Call again in a minute."
+
+
+def downloading(nbytes: int) -> str:
+    mb = max(0, int(nbytes)) // 1_000_000
+    return f"downloading the pinned binary ({mb} MB of ~90 MB). Nothing was sent. Call again in a minute."
 WRITE_SYMLINK = "Refused to write server.toml because a symlink is in the path. Nothing was sent."
 WRITE_HARDLINK = "Refused to write server.toml because the file has another name. Nothing was sent."
 WRITE_OUTSIDE = "Refused to write server.toml outside the plugin data directory. Nothing was sent."

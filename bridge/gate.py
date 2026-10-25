@@ -33,6 +33,69 @@ _KEYS = {
     "events_list": {"namespace", "fieldSelector", "limit", "continue"},
     "pods_log": {"namespace", "name", "container", "tail", "previous"},
 }
+_DESC = {
+    "pods_list_in_namespace": "List pods in one namespace. what is down in the namespace. list pods and their status.",
+    "pods_get": "Get one pod. pod status and restart count.",
+    "events_list": "List events in one namespace. pod events.",
+    "pods_log": "Read one pod log. why is this pod restarting. pod logs.",
+}
+_STRING = {"type": "string"}
+_SCHEMA = {
+    "pods_list_in_namespace": {
+        "type": "object",
+        "properties": {
+            "namespace": _STRING,
+            "labelSelector": _STRING,
+            "fieldSelector": _STRING,
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+            "continue": _STRING,
+        },
+        "additionalProperties": False,
+    },
+    "pods_get": {
+        "type": "object",
+        "properties": {"namespace": _STRING, "name": _STRING},
+        "additionalProperties": False,
+    },
+    "events_list": {
+        "type": "object",
+        "properties": {
+            "namespace": _STRING,
+            "fieldSelector": _STRING,
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+            "continue": _STRING,
+        },
+        "additionalProperties": False,
+    },
+    "pods_log": {
+        "type": "object",
+        "properties": {
+            "namespace": _STRING,
+            "name": _STRING,
+            "container": _STRING,
+            "tail": {"type": "integer", "minimum": 1, "maximum": 200},
+            "previous": {"type": "boolean"},
+        },
+        "additionalProperties": False,
+    },
+}
+
+
+def catalog() -> list:
+    """The four read tools this bridge lists before the binary is downloaded."""
+    tools = []
+    for name in READ_ORDER:
+        tools.append(
+            {
+                "name": name,
+                "description": _DESC[name],
+                "inputSchema": _SCHEMA[name],
+                "annotations": {"readOnlyHint": True},
+            }
+        )
+    return tools
+
+
 def public_texts(root: Path):
     paths = [
         root / "README.md",

@@ -2,7 +2,7 @@
 
 Read one local Kubernetes namespace: what is down in the namespace, list pods and their status, and why is this pod restarting. Kubernetes is a registered trademark of The Linux Foundation.
 
-The server is [kubernetes-mcp-server 0.0.68](https://pypi.org/project/kubernetes-mcp-server/0.0.68/) ([source](https://github.com/containers/kubernetes-mcp-server), [license](https://github.com/containers/kubernetes-mcp-server/blob/v0.0.68/LICENSE)), started by `uvx`. This plugin does not modify that package. It lists four read tools and does not list a change. The Apache License, Version 2.0, is at https://www.apache.org/licenses/LICENSE-2.0.
+The server is [kubernetes-mcp-server 0.0.68](https://github.com/containers/kubernetes-mcp-server/releases/tag/v0.0.68) ([source](https://github.com/containers/kubernetes-mcp-server), [license](https://github.com/containers/kubernetes-mcp-server/blob/v0.0.68/LICENSE)). This plugin downloads that release's `kubernetes-mcp-server-<os>-<arch>` binary, checks its sha256 against constants taken from the GitHub release asset digest, and starts that file. A mismatch, including a file that was already there, is refused. This plugin does not modify that binary. It lists four read tools and does not list a change. The Apache License, Version 2.0, is at https://www.apache.org/licenses/LICENSE-2.0.
 
 Pod names, status, events, and logs reach the model on every read. Search with `tool_search` before `web_search`. Words that match this plugin:
 
@@ -10,13 +10,13 @@ what is down in the namespace. list pods and their status. why is this pod resta
 
 ## Install
 
-`uv` must be on `PATH` so `uvx` can start. Hermes starts `python3 -I` on `bridge/launch.py`. That process reads `cluster.json`, writes `server.toml`, then stays in front of:
+Hermes starts `python3 -I` on `bridge/launch.py`. That process reads `cluster.json`, writes `server.toml`, and answers MCP initialize and tools/list before any download. The first call of one of the four tools writes the v0.0.68 GitHub release binary into `.kubernetes-mcp-server/bin/0.0.68/` when that file is missing. A tool outside those four does not start that download. A partial download is kept and continued with HTTP Range.  The sha256 is checked before that file is started. The process stays in front of:
 
 ```text
-uvx --from kubernetes-mcp-server==0.0.68 kubernetes-mcp-server --config server.toml
+$HERMES_HOME/plugin-data/agent-plugin-kubernetes-94abcb2d/.kubernetes-mcp-server/bin/0.0.68/kubernetes-mcp-server-<os>-<arch> --config server.toml
 ```
 
-The pinned server is not modified. `read_only` is fixed to true. `toolsets` is fixed to `core`. `enabled_tools` is fixed to `pods_list_in_namespace`, `pods_get`, `events_list`, and `pods_log`. Secret, ConfigMap, and ServiceAccount are denied. `configuration_view` is not listed. Helm is not listed. The transport is stdio. This plugin does not open a listening port. A tool that is not one of those four is refused, and nothing is sent. An env value whose name looks like a password, token, or key is replaced with `[redacted]`. The `kubectl.kubernetes.io/last-applied-configuration` annotation is replaced with `[redacted]` because it repeats that value.
+The URL is `https://github.com/containers/kubernetes-mcp-server/releases/download/v0.0.68/kubernetes-mcp-server-<os>-<arch>`. The sha256 for darwin-arm64, darwin-amd64, linux-amd64, and linux-arm64 is a constant in `bridge/binary.py`, copied from that release's GitHub asset `digest`. A file whose sha256 does not match is not started, including a file that was already in that directory. A symlink on that path is refused. Another OS or CPU, including Windows, is refused. The pinned binary is not modified. `read_only` is fixed to true. `toolsets` is fixed to `core`. `enabled_tools` is fixed to `pods_list_in_namespace`, `pods_get`, `events_list`, and `pods_log`. Secret, ConfigMap, and ServiceAccount are denied. `configuration_view` is not listed. Helm is not listed. The transport is stdio. This plugin does not open a listening port. A tool that is not one of those four is refused before the download, and nothing is sent. An env value whose name looks like a password, token, or key is replaced with `[redacted]`. The `kubectl.kubernetes.io/last-applied-configuration` annotation is replaced with `[redacted]` because it repeats that value.
 
 1. Install this directory without enabling it:
 
@@ -64,7 +64,7 @@ rules:
   verbs: ["get", "list"]
 ```
 
-The token in the kubeconfig is sent only to the API host in that file. It is not put on the command line and it is not written into `server.toml`. An HTTP proxy in the environment is not used, including `http_proxy`, `https_proxy`, `all_proxy`, `ALL_PROXY`, `HTTP_PROXY`, and `HTTPS_PROXY`. Over plain http the token travels without encryption. The first start may download the pinned binary from GitHub into the plugin data directory. This plugin does not create a cron job. The data directory remains after the plugin is removed.
+The token in the kubeconfig is sent only to the API host in that file. It is not put on the command line and it is not written into `server.toml`. An HTTP proxy in the environment is not used for the API or the binary download, including `http_proxy`, `https_proxy`, `all_proxy`, `ALL_PROXY`, `HTTP_PROXY`, and `HTTPS_PROXY`. Over plain http the token travels without encryption. The first call of one of the four tools downloads the pinned GitHub release binary into the plugin data directory. A tool outside those four does not start that download. MCP initialize and tools/list are answered before that download. A partial file is kept, and the next call continues with HTTP Range. The sha256 is checked on the open file and that path is started on the next line, but a replacement between the check and the start can still run. Later starts check the file that is already there. This plugin does not create a cron job. The data directory remains after the plugin is removed.
 
 Four steps above are the whole setup. Then ask.
 
@@ -84,7 +84,7 @@ Quote the waiting reason and the restart count from `pods_get`, the event reason
 
 ## When a call fails
 
-Do not call the tool a second time for the same failure. Quote the line and take the next step once.
+Do not call the tool a second time for the same failure, except when the line says `Call again in a minute.` Quote the line and take the next step once.
 
 - `cluster.json was not found. Nothing was sent.`
 - `cluster.json could not be read. Nothing was sent.`
@@ -97,7 +97,16 @@ Do not call the tool a second time for the same failure. Quote the line and take
 - `Refused an API host that is not local. Nothing was sent.`
 - `Refused an API host that contains a password. Nothing was sent.`
 - `The work directory was not found. Nothing was sent.`
-- `uvx was not found on PATH. Nothing was sent.`
+- `Refused this OS or CPU. Nothing was sent.`
+- `Refused the kubernetes-mcp-server binary because its sha256 did not match. Nothing was sent.`
+- `Refused the kubernetes-mcp-server binary because a symlink is in the path. Nothing was sent.`
+- `The kubernetes-mcp-server binary could not be downloaded. Nothing was sent.`
+- `Refused to write the kubernetes-mcp-server binary. Nothing was sent.`
+- `The kubernetes-mcp-server binary could not be read. Nothing was sent.`
+- `The kubernetes-mcp-server binary was not found. Nothing was sent.`
+- `The kubernetes-mcp-server binary could not be executed. Nothing was sent.`
+- `The kubernetes-mcp-server binary could not be started. Nothing was sent.`
+- `downloading the pinned binary (0 MB of ~90 MB). Nothing was sent. Call again in a minute.`
 - `Refused to write server.toml because a symlink is in the path. Nothing was sent.`
 - `Refused to write server.toml because the file has another name. Nothing was sent.`
 - `Refused to write server.toml outside the plugin data directory. Nothing was sent.`
